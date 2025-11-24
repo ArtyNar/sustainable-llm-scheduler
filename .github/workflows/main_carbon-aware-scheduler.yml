@@ -11,7 +11,7 @@ on:
 
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
-  PYTHON_VERSION: '3.10' # set this to the python version to use (supports 3.6, 3.7, 3.8)
+  PYTHON_VERSION: '3.12' # set this to the python version to use (supports 3.6, 3.7, 3.8)
 
 jobs:
   build:
@@ -32,15 +32,19 @@ jobs:
       # Let Azure handle package installation from requirements.txt
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r -x "*.git*" "*venv/*" "*__pycache__*" "*.pyc"
-
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
+        run: |
+          # Ensure requirements.txt is included
+          zip release.zip requirements.txt host.json
+          zip release.zip HttpTrigger1/* -r
+          # Or if all function folders
+          zip release.zip */function.json */__init__.py -r
+            - name: Upload artifact for deployment job
+              uses: actions/upload-artifact@v4
+              with:
+                name: python-app
+                path: |
+                  release.zip
+                  !venv/
 
   deploy:
     runs-on: ubuntu-latest
