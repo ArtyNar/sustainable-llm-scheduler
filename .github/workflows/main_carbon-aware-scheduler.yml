@@ -30,7 +30,7 @@ jobs:
 
       - name: Zip artifact for deployment
         run: |
-          zip release.zip requirements.txt host.json
+          zip release.zip requirements.txt host.json utils.py
           zip release.zip HttpTrigger1/__init__.py HttpTrigger1/function.json
           zip release.zip TimerTrigger/__init__.py TimerTrigger/function.json
 
