@@ -3,5 +3,5 @@
 # azure-monitor-opentelemetry
 
 azure-functions
-azure-data-tables
+azure-data-tables>=12.4.0
 azure-ai-openai

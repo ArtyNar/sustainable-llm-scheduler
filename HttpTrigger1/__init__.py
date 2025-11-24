@@ -41,9 +41,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
     
 
-    tabl_neame = "prompttable"
+    table_name  = "prompttable"
 
-    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(tabl_neame)
+    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
     entities = table_client.list_entities()
     rows = [dict(e) for e in entities]
