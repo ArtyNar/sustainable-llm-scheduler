@@ -3,6 +3,8 @@ import json
 import azure.functions as func
 from azure.data.tables import TableServiceClient
 import os
+from utils import get_cur_CI
+import uuid
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -42,25 +44,28 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     
 
     table_name  = "prompttable"
-
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
     entities = table_client.list_entities()
     rows = [dict(e) for e in entities]
-    
-    name = req.params.get('name')
-    if not name:
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            name = req_body.get('name')
 
-    if name:
-        return func.HttpResponse(f"Hello, {name}. This HTTP triggered function executed successfully.")
-    else:
-        return func.HttpResponse(
-             json.dumps(rows),
-             status_code=200
-        )
+    # Lastly, store the CI in a table
+    cur_CI, cur_zone, timestamp = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
+
+    table_name  = "carbonintensities"
+    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+
+    data = {
+        "PartitionKey": "pending", # Effectively table name
+        "RowKey": str(uuid.uuid4()), # Generates a key 
+        "Zone": cur_zone,
+        "CI": cur_CI,
+        "CI_TS": timestamp
+    }
+
+    table_client.create_entity(entity=data)
+
+    return func.HttpResponse(
+            json.dumps(rows),
+            status_code=200
+    )
