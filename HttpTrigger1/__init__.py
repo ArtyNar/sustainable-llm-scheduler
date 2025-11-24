@@ -41,13 +41,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
     
 
-    table_name  = "prompttable"
+    # table_name  = "prompttable"
 
-    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    # table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
-    entities = table_client.list_entities()
-    rows = [dict(e) for e in entities]
+    # entities = table_client.list_entities()
+    # rows = [dict(e) for e in entities]
     
+    rows = []
     name = req.params.get('name')
     if not name:
         try:
