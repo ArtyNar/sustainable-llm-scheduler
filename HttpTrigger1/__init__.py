@@ -41,7 +41,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             mimetype="application/json"
         )
-    
 
     table_name  = "prompttable"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
@@ -50,20 +49,19 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     rows = [dict(e) for e in entities]
 
     # Lastly, store the CI in a table
-    cur_CI, cur_zone, timestamp = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
+    # cur_CI, cur_zone, timestamp = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
 
-    table_name  = "carbonintensities"
-    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    # table_name  = "carbonintensities"
+    # table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
-    data = {
-        "PartitionKey": "pending", # Effectively table name
-        "RowKey": str(uuid.uuid4()), # Generates a key 
-        "Zone": cur_zone,
-        "CI": cur_CI,
-        "CI_TS": timestamp
-    }
+    # data = {
+    #     "PartitionKey": timestamp, # Effectively table name
+    #     "RowKey": str(uuid.uuid4()), # Generates a key 
+    #     "Zone": cur_zone,
+    #     "CI": cur_CI,
+    # }
 
-    table_client.create_entity(entity=data)
+    # table_client.create_entity(entity=data)
 
     return func.HttpResponse(
             json.dumps(rows),
