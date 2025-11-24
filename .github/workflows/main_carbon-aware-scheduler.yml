@@ -68,12 +68,13 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_375DF02367284904BF82698DF742125D }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_188A0FE720674A10BA4D32E3CA677E68 }}
 
-      - name: 'Deploy to Azure Functions'
-        uses: Azure/functions-action@v1
-        id: deploy-to-function
-        with:
-          app-name: 'carbon-aware-scheduler'
-          slot-name: 'Production'
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          scm-do-build-during-deployment: true
-          enable-oryx-build: true
+        - name: 'Deploy to Azure Functions'
+                uses: Azure/functions-action@v1
+                id: deploy-to-function
+                with:
+                  app-name: 'carbon-aware-scheduler'
+                  slot-name: 'Production'
+                  package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+                  scm-do-build-during-deployment: true
+                  enable-oryx-build: true
+                  remote-build: true 
