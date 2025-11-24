@@ -33,18 +33,9 @@ jobs:
 
       - name: Zip artifact for deployment
         run: |
-          # Ensure requirements.txt is included
           zip release.zip requirements.txt host.json
-          zip release.zip HttpTrigger1/* -r
-          # Or if all function folders
-          zip release.zip */function.json */__init__.py -r
-            - name: Upload artifact for deployment job
-              uses: actions/upload-artifact@v4
-              with:
-                name: python-app
-                path: |
-                  release.zip
-                  !venv/
+          zip release.zip HttpTrigger1/__init__.py HttpTrigger1/function.json
+          zip release.zip TimerTrigger/__init__.py TimerTrigger/function.json
 
   deploy:
     runs-on: ubuntu-latest
