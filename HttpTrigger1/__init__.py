@@ -3,7 +3,7 @@ import json
 import azure.functions as func
 from azure.data.tables import TableServiceClient, UpdateMode
 import os
-from utils import get_cur_CI
+from utils import get_cur_CI, use_llm
 import uuid
 from datetime import datetime
 
@@ -53,11 +53,28 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     )
 
     for entity in entities:
+        try:   
+            model = entity["Model"]
+            prompt_text = entity["Prompt"]
+
+            response = use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+
+            response_text = response.choices[0].message.content
+            out_tokens = response.usage.completion_tokens
+
+        except Exception as e:
+            logging.error(f"JSON parsing error: {e}")
+            return func.HttpResponse(
+                json.dumps({"error": "Failed to get AZAI response"}),
+                status_code=400,
+                mimetype="application/json"
+            )
         try:
             entity["Status"] = "completed"
             entity["CompletedAt"] = datetime.now().isoformat()
-            entity["Response"] = "Test Test"
+            entity["Response"] = response_text
             entity["carbonIntensity_C"] = cur_CI
+            entity["OutTokens"] = out_tokens
 
             table_client.upsert_entity(mode=UpdateMode.MERGE, entity=entity)
             
@@ -68,21 +85,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 status_code=500,
                 mimetype="application/json"
             )
-    # Lastly, store the CI in a table
-    # table_name  = "carbonintensities"
-    # table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
-    # data = {
-    #     "PartitionKey": timestamp, # Effectively table name
-    #     "RowKey": str(uuid.uuid4()), # Generates a key 
-    #     "Zone": cur_zone,
-    #     "CI": cur_CI,
-    # }
-
-    # table_client.create_entity(entity=data)
-
-    rows = [dict(e) for e in entities]
     return func.HttpResponse(
-            json.dumps(rows),
+            json.dumps({"success": f"Everything went well"}),
             status_code=200
     )
