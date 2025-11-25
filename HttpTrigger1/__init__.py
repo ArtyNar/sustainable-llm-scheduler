@@ -1,10 +1,11 @@
 import logging
 import json
 import azure.functions as func
-from azure.data.tables import TableServiceClient
+from azure.data.tables import TableServiceClient, UpdateMode
 import os
 from utils import get_cur_CI
 import uuid
+from datetime import datetime
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -45,9 +46,25 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     table_name  = "prompttable"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
-    entities = table_client.list_entities()
-    rows = [dict(e) for e in entities]
+    entities = table_client.query_entities(
+        query_filter="Status eq 'pending'"
+    )
 
+    for entity in entities:
+        try:
+            entity["Status"] = "completed"
+            entity["CompletedAt"] = datetime.now().isoformat()
+            entity["Response"] = "Test Test"
+
+            table_client.upsert_entity(mode=UpdateMode.MERGE, entity=entity)
+            
+        except Exception as e:
+            logging.error(f"Error updating entity {entity.get('RowKey')}: {e}")
+            return func.HttpResponse(
+                body=json.dumps({"error": f"Failed to update entity: {str(e)}"}),
+                status_code=500,
+                mimetype="application/json"
+            )
     # Lastly, store the CI in a table
     # cur_CI, cur_zone, timestamp = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
 
@@ -63,6 +80,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     # table_client.create_entity(entity=data)
 
+    rows = [dict(e) for e in entities]
     return func.HttpResponse(
             json.dumps(rows),
             status_code=200
