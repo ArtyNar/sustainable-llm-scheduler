@@ -73,7 +73,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             entity["Status"] = "completed"
             entity["CompletedAt"] = datetime.now().isoformat()
             entity["Response"] = response_text
-            entity["carbonIntensity_C"] = cur_CI
+            entity["CarbonIntensity_c"] = cur_CI
             entity["OutTokens"] = out_tokens
 
             table_client.upsert_entity(mode=UpdateMode.MERGE, entity=entity)
