@@ -86,8 +86,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 status_code=500,
                 mimetype="application/json"
             )
+        
+    table_name  = "carbonintensities"
+    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+
+    entities = table_client.query_entities()
+    rows = [dict(e) for e in entities]
+
 
     return func.HttpResponse(
-            json.dumps({"success": f"Everything went well"}),
+            #json.dumps({"success": f"Everything went well"}),
+            json.dumps(rows),
             status_code=200
     )
