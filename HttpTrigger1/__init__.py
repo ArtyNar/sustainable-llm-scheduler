@@ -7,6 +7,7 @@ from utils import get_cur_CI, use_llm
 import uuid
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -90,7 +91,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     table_name  = "carbonintensities"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
-    entities = table_client.query_entities()
+
+    
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
+
+    query = f"Timestamp ge datetime'{cutoff_str}'"
+
+    entities = table_client.query_entities(query)
     rows = [dict(e) for e in entities]
 
 
