@@ -72,7 +72,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             )
         try:
             entity["Status"] = "completed"
-            entity["CompletedAt"] = datetime.now(ZoneInfo("America/Denver")).isoformat()
+            entity["CompletedAt"] = datetime.now().isoformat()
             entity["Response"] = response_text
             entity["CarbonIntensity_c"] = cur_CI
             entity["OutTokens"] = out_tokens
