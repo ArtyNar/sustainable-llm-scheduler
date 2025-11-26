@@ -6,6 +6,7 @@ import os
 from utils import get_cur_CI, use_llm
 import uuid
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -71,7 +72,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             )
         try:
             entity["Status"] = "completed"
-            entity["CompletedAt"] = datetime.now().isoformat()
+            entity["CompletedAt"] = datetime.now(ZoneInfo("America/Denver")).isoformat()
             entity["Response"] = response_text
             entity["CarbonIntensity_c"] = cur_CI
             entity["OutTokens"] = out_tokens
