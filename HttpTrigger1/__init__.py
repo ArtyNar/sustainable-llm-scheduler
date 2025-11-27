@@ -3,11 +3,9 @@ import json
 import azure.functions as func
 from azure.data.tables import TableServiceClient, UpdateMode
 import os
-from utils import get_cur_CI, use_llm
+from utils import get_cur_CI, get_bin, execute
 import uuid
 from datetime import datetime
-from zoneinfo import ZoneInfo
-from datetime import datetime, timedelta, timezone
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -54,56 +52,29 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         query_filter="Status eq 'pending'"
     )
 
-    for entity in entities:
-        try:   
+    try:
+        for entity in entities:
             model = entity["Model"]
             prompt_text = entity["Prompt"]
+            expirationDate = datetime.fromisoformat(entity['expirationDate'])
+            CI_old = entity['CarbonIntensity_s']
 
-            response = use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+            bin_old, bin_new = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
 
-            response_text = response.choices[0].message.content
-            out_tokens = response.usage.completion_tokens
+            if datetime.now() > expirationDate:
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+            else:
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
 
-        except Exception as e:
-            logging.error(f"JSON parsing error: {e}")
-            return func.HttpResponse(
-                json.dumps({"error": "Failed to get AZAI response"}),
-                status_code=400,
-                mimetype="application/json"
-            )
-        try:
-            entity["Status"] = "completed"
-            entity["CompletedAt"] = datetime.now().isoformat()
-            entity["Response"] = response_text
-            entity["CarbonIntensity_c"] = cur_CI
-            entity["OutTokens"] = out_tokens
-
-            table_client.upsert_entity(mode=UpdateMode.MERGE, entity=entity)
-            
-        except Exception as e:
-            logging.error(f"Error updating entity {entity.get('RowKey')}: {e}")
-            return func.HttpResponse(
-                body=json.dumps({"error": f"Failed to update entity: {str(e)}"}),
-                status_code=500,
-                mimetype="application/json"
-            )
-        
-    table_name  = "carbonintensities"
-    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
-
-
+    except Exception as e:
+        logging.error(f"Something went wrong: {e}")
+        return func.HttpResponse(
+            body=json.dumps({"error": f"Something went wrong: {str(e)}"}),
+            status_code=500,
+            mimetype="application/json"
+        )
     
-    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
-    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
-
-    query = f"Timestamp ge datetime'{cutoff_str}'"
-
-    entities = table_client.query_entities(query)
-    rows = [dict(e) for e in entities]
-
-
     return func.HttpResponse(
-            #json.dumps({"success": f"Everything went well"}),
-            json.dumps(rows),
+            json.dumps({"success": f"Everything went well"}),
             status_code=200
     )

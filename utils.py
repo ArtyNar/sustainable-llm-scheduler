@@ -1,5 +1,10 @@
 import requests
 from openai import AzureOpenAI
+from datetime import  timedelta, timezone, datetime
+from azure.data.tables import TableServiceClient
+from azure.data.tables import TableServiceClient, UpdateMode
+import logging
+import json
 
 def get_cur_CI(EM_KEY):
     url = "https://api.electricitymaps.com/v3/carbon-intensity/latest?dataCenterRegion=eastus2&dataCenterProvider=azure&disableEstimations=true&emissionFactorType=direct"
@@ -41,3 +46,55 @@ def use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
     )
 
     return response
+
+def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
+    table_name  = "carbonintensities"
+    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
+
+    query = f"Timestamp ge datetime'{cutoff_str}'"
+
+    entities = table_client.query_entities(query)
+    rows = [dict(e) for e in entities]
+    CIs = [item.get('CI') for item in rows]
+
+    min_ci = min(CIs)
+    max_ci = max(CIs)
+
+    # For 6 bins
+    bin_width = (max_ci - min_ci) / 5
+
+    if ci_old >= max_ci:
+        old = 5 
+    if ci_old <= min_ci:
+        old =  0
+    else:
+        old = int((ci_old - min_ci) / bin_width + 1)
+
+    if cur_CI >= max_ci:
+        new = 5 
+    if cur_CI <= min_ci:
+        new =  0
+    else:
+        new = int((cur_CI - min_ci) / bin_width + 1)
+
+    return old, new
+
+
+
+def execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
+    response = use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+
+    response_text = response.choices[0].message.content
+    out_tokens = response.usage.completion_tokens
+
+    entity["Status"] = "completed"
+    entity["CompletedAt"] = datetime.now().isoformat()
+    entity["Response"] = response_text
+    entity["CarbonIntensity_c"] = cur_CI
+    entity["OutTokens"] = out_tokens
+
+    table_client.upsert_entity(mode=UpdateMode.MERGE, entity=entity)
+    
