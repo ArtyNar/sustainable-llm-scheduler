@@ -58,7 +58,8 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
 
     entities = table_client.query_entities(query)
     rows = [dict(e) for e in entities]
-    CIs = [float(row['CI']) for row in rows]
+    CIs = [row['CI'] for row in rows]
+    
     min_ci = min(CIs)
     max_ci = max(CIs)
 
