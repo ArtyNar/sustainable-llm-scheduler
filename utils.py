@@ -6,6 +6,7 @@ from azure.data.tables import TableServiceClient, UpdateMode
 import logging
 import json
 
+# Gets latest Carbon Intensity from Electricity Maps 
 def get_cur_CI(EM_KEY):
     url = "https://api.electricitymaps.com/v3/carbon-intensity/latest?dataCenterRegion=eastus2&dataCenterProvider=azure&disableEstimations=true&emissionFactorType=direct"
     headers={"auth-token": EM_KEY}
@@ -18,6 +19,7 @@ def get_cur_CI(EM_KEY):
 
     return cur_CI, cur_zone, timestamp
 
+# Queries Az Open AI for llm response
 def use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
     api_version = "2024-12-01-preview"
     deployment = model
@@ -32,7 +34,7 @@ def use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant. The response will be embedded into an HTML div, so make sure you provide HTML formatted prompts. Bootstrap 5 is used, so feel free to use that formatting to prettify. Do not mention anything about formatting.",
+                "content": "You are a helpful assistant. The response will be embedded into an HTML div, so make sure you provide HTML formatted prompts. Bootstrap 5 is used, so feel free to use that formatting to prettify. Do not prettify for very simple short text responses. Do not mention anything about formatting you did.",
             },
             {
                 "role": "user",
@@ -47,6 +49,8 @@ def use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
 
     return response
 
+# Gets last weeks hourly carbon intensity data, and splits it into bins 0-5
+# Returns what bin old and new CI belong to 
 def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     table_name  = "carbonintensities"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
@@ -59,7 +63,7 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     entities = table_client.query_entities(query)
     rows = [dict(e) for e in entities]
     CIs = [row['CI'] for row in rows]
-    
+
     min_ci = min(CIs)
     max_ci = max(CIs)
 
@@ -82,8 +86,43 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
 
     return old, new
 
+# Used in probabolistic scheduler
+def get_execution_probability(bin_old, bin_new, time_remaining_hours):
+    # Calculate benefit (using bins)
+    benefit = bin_old - bin_new
 
+    # Base probability heavily favors larger benefits 
+    if benefit >= 4:
+        base_prob = 1
+    elif benefit >= 3:
+        base_prob = 0.8     
+    elif benefit == 2:
+        base_prob = 0.7       
+    elif benefit == 1:
+        base_prob = 0.6      
+    elif benefit == 0:
+        base_prob = 0.1      
+    else:  
+        return 0.0 # Never execute if there is no benefit
+    
+    # Urgency modifier: as deadline approaches, accept smaller benefits
+    if time_remaining_hours > 18:
+        urgency_factor = 0.5   # Plenty of time: be picky 
+    elif time_remaining_hours > 10:
+        urgency_factor = 0.8   # Some time: moderate
+    elif time_remaining_hours > 6:
+        urgency_factor = 1.0   # Getting close: normal
+    elif time_remaining_hours > 4:
+        urgency_factor = 1.5   # Urgent: boost probability
+    else:
+        urgency_factor = 3.0   # Very urgent: strongly boost
+    
+    # Combine: probability increases with both benefit and urgency
+    final_prob = min(1.0, base_prob * urgency_factor)
+    
+    return final_prob
 
+# Run the prompt, and update the prompt table with response
 def execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
     response = use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
 
@@ -91,7 +130,7 @@ def execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPO
     out_tokens = response.usage.completion_tokens
 
     entity["Status"] = "completed"
-    entity["CompletedAt"] = datetime.now().isoformat()
+    entity["CompletedAt"] = datetime.now(timezone.utc).isoformat()
     entity["Response"] = response_text
     entity["CarbonIntensity_c"] = cur_CI
     entity["OutTokens"] = out_tokens
