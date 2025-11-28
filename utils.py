@@ -137,3 +137,4 @@ def execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPO
 
     table_client.upsert_entity(mode=UpdateMode.MERGE, entity=entity)
     
+    logging.info(f"Prompt completed: {str(prompt_text)}")
