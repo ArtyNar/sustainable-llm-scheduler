@@ -57,7 +57,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             model = entity["Model"]
             prompt_text = entity["Prompt"]
             expirationDate = datetime.fromisoformat(entity['expirationDate'])
-            CI_old = int(float(entity['CarbonIntensity_s']))
+            CI_old = entity['CarbonIntensity_s'].value
 
             bin_old, bin_new = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
 
