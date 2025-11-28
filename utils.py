@@ -123,7 +123,7 @@ def get_execution_probability(bin_old, bin_new, time_remaining_hours):
     return final_prob
 
 # Run the prompt, and update the prompt table with response
-def execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
+def execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, final_prob):
     response = use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
 
     response_text = response.choices[0].message.content
@@ -137,4 +137,4 @@ def execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPO
 
     table_client.upsert_entity(mode=UpdateMode.MERGE, entity=entity)
     
-    logging.info(f"Prompt completed: {str(prompt_text)}")
+    logging.info(f"Prompt completed: {str(prompt_text)} at probability: {str(final_prob)}")
