@@ -1,7 +1,7 @@
 import logging
 import json
 import azure.functions as func
-from azure.data.tables import TableServiceClient, UpdateMode
+from azure.data.tables import TableServiceClient
 import os
 from utils import get_cur_CI, get_bin, execute, get_execution_probability
 import uuid

@@ -3,10 +3,14 @@ import json
 import azure.functions as func
 from azure.data.tables import TableServiceClient
 import os
-from utils import get_cur_CI
+from utils import get_cur_CI, get_bin, execute, get_execution_probability
 import uuid
+from datetime import datetime, timezone
+import random
 
 def main(mytimer: func.TimerRequest) -> None:
+    logging.info('Python timer function processed a request.')
+
     AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT")
     AZURE_OPENAI_KEY = os.environ.get("AZURE_OPENAI_KEY")
     DEPLOYMENT_STORAGE_CONNECTION_STRING = os.environ.get("DEPLOYMENT_STORAGE_CONNECTION_STRING")
@@ -40,9 +44,64 @@ def main(mytimer: func.TimerRequest) -> None:
             mimetype="application/json"
         )
 
-    # Lastly, store the CI in a table
+    # Get latest carbon intensity
     cur_CI, cur_zone, timestamp = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
 
+    # Access prompt table
+    try:
+        table_name  = "prompttable"
+        table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+
+        entities = table_client.query_entities(
+            query_filter="Status eq 'pending'" # Filter on pending only
+        )
+
+    except Exception as e:
+        logging.error(f"Something went wrong accessing the prompt table: {e}")
+        return func.HttpResponse(
+            body=json.dumps({"error": f"Something went wrong accessing the prompt table: {str(e)}"}),
+            status_code=500,
+            mimetype="application/json"
+        )
+    
+    try:
+        for entity in entities:
+            model = entity["Model"]
+            prompt_text = entity["Prompt"]
+            expirationDate = datetime.fromisoformat(entity['expirationDate'])
+            CI_old = entity['CarbonIntensity_s'].value
+            now = datetime.now(timezone.utc)
+            
+            # Time remaining
+            delta = expirationDate - now
+            remaining_hours = delta.total_seconds() / 3600
+
+            # Get bins for current and past CI (0-5)
+            bin_old, bin_new = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
+
+            # If scheduler failed to execute in time, execute 
+            if now > expirationDate:
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+           
+            # If carbon intensity is very low, execute
+            elif bin_new == 0: 
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+            
+            else:
+                prob = get_execution_probability(bin_old, bin_new, remaining_hours)
+
+                if random.random() < prob:
+                    execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+                
+    except Exception as e:
+        logging.error(f"Something went wrong with the scheduler: {e}")
+        return func.HttpResponse(
+            body=json.dumps({"error": f"Something went wrong with the scheduler: {str(e)}"}),
+            status_code=500,
+            mimetype="application/json"
+        )
+
+    # Lastly, store carbon intensity in table (needed for scheduler)
     table_name  = "carbonintensities"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
@@ -53,6 +112,6 @@ def main(mytimer: func.TimerRequest) -> None:
         "CI": cur_CI,
     }
 
-    table_client.create_entity(entity=data)
+    table_client.create_entity(entity=data) # Commit
 
-    logging.info('Python timer trigger executed successfully.')
+    logging.info('Python timer finished successfully.')
