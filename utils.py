@@ -67,7 +67,7 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     rows = [
         {
             "CI": e["CI"],
-            "Timestamp": e["Timestamp"],
+            "Timestamp": e.metadata["timestamp"],
         }
         for e in entities
     ]

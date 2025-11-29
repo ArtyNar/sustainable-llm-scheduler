@@ -56,46 +56,46 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         query_filter="Status eq 'pending'"
     )
 
-    # try:
-    #     for entity in entities:
-    #         model = entity["Model"]
-    #         prompt_text = entity["Prompt"]
-    #         expirationDate = datetime.fromisoformat(entity['expirationDate'])
-    #         CI_old = entity['CarbonIntensity_s'].value
-    #         now = datetime.now(timezone.utc)
+    try:
+        for entity in entities:
+            model = entity["Model"]
+            prompt_text = entity["Prompt"]
+            expirationDate = datetime.fromisoformat(entity['expirationDate'])
+            CI_old = entity['CarbonIntensity_s'].value
+            now = datetime.now(timezone.utc)
             
-    #         logging.info(f'Processing: {prompt_text}')
+            logging.info(f'Processing: {prompt_text}')
 
-    #         # Time remaining
-    #         delta = expirationDate - now
-    #         remaining_hours = delta.total_seconds() / 3600
+            # Time remaining
+            delta = expirationDate - now
+            remaining_hours = delta.total_seconds() / 3600
 
-    #         # Get bins for current and past CI (0-5)
-    #         bin_old, bin_new, CIs = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
+            # Get bins for current and past CI (0-5)
+            bin_old, bin_new, CIs = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
 
-    #         # If scheduler failed to execute in time, execute 
-    #         if now > expirationDate:
-    #             logging.info('Prompt expired.')
-    #             execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, 10000)
-    #             continue
-    #         # If carbon intensity is very low, execute
-    #         elif bin_new == 0: 
-    #             execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
-    #         else:
-    #             prob = get_execution_probability(bin_old, bin_new, CIs, remaining_hours)
-    #             r = random.random()
-    #             if r < prob:
-    #                 logging.info(f'Rand: {r}')
+            # If scheduler failed to execute in time, execute 
+            if now > expirationDate:
+                logging.info('Prompt expired.')
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, 10000)
+                continue
+            # If carbon intensity is very low, execute
+            elif bin_new == 0: 
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
+            else:
+                prob = get_execution_probability(bin_old, bin_new, CIs, remaining_hours)
+                r = random.random()
+                if r < prob:
+                    logging.info(f'Rand: {r}')
 
-    #                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, prob)
+                    execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, prob)
                 
-    # except Exception as e:
-    #     logging.error(f"Something went wrong: {e}")
-    #     return func.HttpResponse(
-    #         body=json.dumps({"error": f"Something went wrong: {str(e)}"}),
-    #         status_code=500,
-    #         mimetype="application/json"
-    #     )   
+    except Exception as e:
+        logging.error(f"Something went wrong: {e}")
+        return func.HttpResponse(
+            body=json.dumps({"error": f"Something went wrong: {str(e)}"}),
+            status_code=500,
+            mimetype="application/json"
+        )   
 
     # table_name  = "prompttable"
     # table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
@@ -107,23 +107,23 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # )
 
     # rows = [dict(e) for e in entities]
-    table_name  = "carbonintensities"
-    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    # table_name  = "carbonintensities"
+    # table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
     
-    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
-    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
+    # cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    # cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
     
-    query = (
-        f"PartitionKey eq 'ci' and "
-        f"Timestamp ge datetime'{cutoff_str}'"
-    )
-    
-    entities = table_client.query_entities(query)
-    first = next(iter(entities), None)
+    # query = (
+    #     f"PartitionKey eq 'ci' and "
+    #     f"Timestamp ge datetime'{cutoff_str}'"
+    # )
 
-    timestamp = first.metadata["timestamp"]
+    # entities = table_client.query_entities(query)
+    # first = next(iter(entities), None)
+
+    # timestamp = first.metadata["timestamp"]
 
     return func.HttpResponse(
-        json.dumps(timestamp.isoformat()),
+        json.dumps("Success"),
         status_code=200
     )
