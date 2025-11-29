@@ -81,17 +81,17 @@ def main(mytimer: func.TimerRequest) -> None:
 
             # If scheduler failed to execute in time, execute 
             if now > expirationDate:
-                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, 10000)
            
             # If carbon intensity is very low, execute
             elif bin_new == 0: 
-                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
             
             else:
                 prob = get_execution_probability(bin_old, bin_new, remaining_hours)
 
                 if random.random() < prob:
-                    execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+                    execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, prob)
                 
     except Exception as e:
         logging.error(f"Something went wrong with the scheduler: {e}")
