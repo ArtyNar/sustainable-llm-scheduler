@@ -56,7 +56,7 @@ def main(mytimer: func.TimerRequest) -> None:
             remaining_hours = delta.total_seconds() / 3600
 
             # Get bins for current and past CI (0-5)
-            bin_old, bin_new = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
+            bin_old, bin_new, CIs = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
 
             # If scheduler failed to execute in time, execute 
             if now > expirationDate:
@@ -68,9 +68,11 @@ def main(mytimer: func.TimerRequest) -> None:
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
             
             else:
-                prob = get_execution_probability(bin_old, bin_new, remaining_hours)
+                prob = get_execution_probability(bin_old, bin_new, CIs, remaining_hours)
+                r = random.random()
+                if r < prob:
+                    logging.info(f'Rand: {r}')
 
-                if random.random() < prob:
                     execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, prob)
                 
     except Exception as e:

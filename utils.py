@@ -5,6 +5,7 @@ from azure.data.tables import TableServiceClient
 from azure.data.tables import TableServiceClient, UpdateMode
 import logging
 import json
+import math
 
 # Gets latest Carbon Intensity from Electricity Maps 
 def get_cur_CI(EM_KEY):
@@ -89,43 +90,46 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     else:
         new = int((cur_CI - min_ci) / bin_width + 1)
 
-    return old, new
+    rows_sorted = sorted(rows, key=lambda x: x['Timestamp'])
+
+    CIs = [row['CI'] for row in rows_sorted[-3:]]
+
+    return old, new, CIs
 
 # Used in probabolistic scheduler
-def get_execution_probability(bin_old, bin_new, time_remaining_hours):
-    # Calculate benefit (using bins)
+import math
+import matplotlib.pyplot as plt
+import numpy as np
+
+def get_execution_probability(bin_old, bin_new, recent_CIs, time_remaining_hours):
     benefit = bin_old - bin_new
-
-    # Base probability heavily favors larger benefits 
+    
+    # Don't execute with no benefit
+    if benefit <= 0:
+        return 0.0
+    
+    base_prob = 1 / (1 + math.exp(-2 * (benefit - 3)))
+    
+    # Force high benefits
     if benefit >= 4:
-        base_prob = 1.0      
-    elif benefit >= 3:
-        base_prob = 0.95    
-    elif benefit == 2:
-        base_prob = 0.7     
-    elif benefit == 1:
-        base_prob = 0.25    
-    else:  
-        return 0.0           
-    
-    if time_remaining_hours > 20:
-        urgency_factor = 0.35   
-    elif time_remaining_hours > 16:
-        urgency_factor = 0.55   
-    elif time_remaining_hours > 12:
-        urgency_factor = 0.75  
-    elif time_remaining_hours > 8:
-        urgency_factor = 1.0    
-    elif time_remaining_hours > 6:
-        urgency_factor = 1.3
-    elif time_remaining_hours > 3:
-        urgency_factor = 1.8
-    else:
-        urgency_factor = 2.5    
+        base_prob = 1.0
 
-    # Combine: probability increases with both benefit and urgency
-    final_prob = min(1.0, base_prob * urgency_factor)
+    # Urgency factor
+    urgency_factor = 0.15 + 2.15 / (
+        1 + math.exp(0.5 * (time_remaining_hours - 6))
+    )
     
+    # Trend adjustment
+    if len(recent_CIs) >= 2:
+        ci_trend = recent_CIs[-2] - recent_CIs[-1]  # positive = CI dropping (good)
+        
+        if ci_trend > 0 and benefit < 4:
+            urgency_factor *= 0.1  # Be more patient
+        elif ci_trend < -5 and benefit >= 2:
+            # CI is rising - execute now before it gets worse
+            urgency_factor *= 40.0  # Be more aggressive
+    
+    final_prob = min(1.0, base_prob * urgency_factor)
     return final_prob
 
 # Run the prompt, and update the prompt table with response
