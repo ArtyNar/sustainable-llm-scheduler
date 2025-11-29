@@ -102,9 +102,9 @@ def get_execution_probability(bin_old, bin_new, time_remaining_hours):
     elif benefit >= 3:
         base_prob = 0.8     
     elif benefit == 2:
-        base_prob = 0.7       
+        base_prob = 0.5      
     elif benefit == 1:
-        base_prob = 0.6      
+        base_prob = 0.3     
     elif benefit == 0:
         base_prob = 0.1      
     else:  
