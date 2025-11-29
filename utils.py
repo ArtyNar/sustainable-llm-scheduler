@@ -4,7 +4,6 @@ from datetime import  timedelta, timezone, datetime
 from azure.data.tables import TableServiceClient
 from azure.data.tables import TableServiceClient, UpdateMode
 import logging
-import json
 import math
 
 # Gets latest Carbon Intensity from Electricity Maps 
@@ -95,11 +94,6 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     CIs = [row['CI'] for row in rows_sorted[-3:]]
 
     return old, new, CIs
-
-# Used in probabolistic scheduler
-import math
-import matplotlib.pyplot as plt
-import numpy as np
 
 def get_execution_probability(bin_old, bin_new, recent_CIs, time_remaining_hours):
     benefit = bin_old - bin_new
