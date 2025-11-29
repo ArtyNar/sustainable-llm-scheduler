@@ -57,8 +57,6 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
-
-    cutoff_str = cutoff.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     query = (
         f"PartitionKey eq 'ci' and "
