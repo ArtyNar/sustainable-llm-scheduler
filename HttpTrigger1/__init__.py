@@ -119,7 +119,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     )
     
     entities = table_client.query_entities(query)
+
+    first = next(iter(entities), None)
+
     return func.HttpResponse(
-            json.dumps(entities),
+            json.dumps(first["Timestamp"]),
             status_code=200
     )
