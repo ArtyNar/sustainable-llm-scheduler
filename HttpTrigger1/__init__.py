@@ -63,6 +63,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             CI_old = entity['CarbonIntensity_s'].value
             now = datetime.now(timezone.utc)
             
+            logging.info(f'Processing: {prompt_text}')
+
             # Time remaining
             delta = expirationDate - now
             remaining_hours = delta.total_seconds() / 3600

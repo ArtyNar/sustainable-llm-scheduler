@@ -65,7 +65,6 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
         f"Timestamp ge datetime'{cutoff_str}'"
     )
     
-
     entities = table_client.query_entities(query)
     rows = [dict(e) for e in entities]
     CIs = [row['CI'] for row in rows]
