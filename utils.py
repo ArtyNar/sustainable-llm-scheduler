@@ -67,6 +67,8 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     min_ci = min(CIs)
     max_ci = max(CIs)
 
+    logging.info(f'Min: {min_ci}, Max: {min_ci}')
+
     # For 6 bins
     bin_width = (max_ci - min_ci) / 5
 

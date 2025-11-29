@@ -60,6 +60,7 @@ def main(mytimer: func.TimerRequest) -> None:
 
             # If scheduler failed to execute in time, execute 
             if now > expirationDate:
+                logging.info('Prompt expired.')
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, 10000)
                 continue
             # If carbon intensity is very low, execute
