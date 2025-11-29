@@ -1,7 +1,7 @@
 import logging
 import json
 import azure.functions as func
-from azure.data.tables import TableServiceClient
+from azure.data.tables import TableServiceClient, UpdateMode
 import os
 from utils import get_cur_CI, get_bin, execute, get_execution_probability
 import uuid
@@ -108,8 +108,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     )
     
     entities = table_client.query_entities(query)
-    rows = [dict(e) for e in entities]
-    
+    for entity in entities:
+        entity["PartitionKey"] = "ci"
+        table_client.upsert_entity(mode=UpdateMode.MERGE, entity=entity)
+
     return func.HttpResponse(
             json.dumps({"success": f"Everything went well"}),
             status_code=200
