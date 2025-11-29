@@ -80,7 +80,8 @@ def main(mytimer: func.TimerRequest) -> None:
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
     data = {
-        "PartitionKey": timestamp, # Effectively table name
+        "PartitionKey": "ci",
+        "Timestamp": timestamp, # Effectively table name
         "RowKey": str(uuid.uuid4()), # Generates a key 
         "Zone": cur_zone,
         "CI": cur_CI,
