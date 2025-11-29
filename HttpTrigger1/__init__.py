@@ -76,7 +76,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
            
             # If carbon intensity is very low, execute
             elif bin_new == 0: 
-                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY)
+                execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
             
             else:
                 prob = get_execution_probability(bin_old, bin_new, remaining_hours)
