@@ -17,32 +17,16 @@ def main(mytimer: func.TimerRequest) -> None:
     ELECTRICITY_MAPS_API_KEY = os.environ.get("ELECTRICITY_MAPS_API_KEY")
 
     if not AZURE_OPENAI_ENDPOINT:
-        return func.HttpResponse(
-            body=json.dumps({"error": "AZ_OPENAI_ENDPOINT not configured"}),
-            status_code=500,
-            mimetype="application/json"
-        )
-    
+        logging.error(f"Env var not configured: {e}")
+
     if not AZURE_OPENAI_KEY:
-        return func.HttpResponse(
-            body=json.dumps({"error": "AZ_OPENAI_KEY not configured"}),
-            status_code=500,
-            mimetype="application/json"
-        )
-    
+        logging.error(f"Env var not configured: {e}")
+
     if not DEPLOYMENT_STORAGE_CONNECTION_STRING:
-        return func.HttpResponse(
-            body=json.dumps({"error": "DEPLOYMENT_STORAGE_CONNECTION_STRING not configured"}),
-            status_code=500,
-            mimetype="application/json"
-        )
-    
+        logging.error(f"Env var not configured: {e}")
+
     if not ELECTRICITY_MAPS_API_KEY:
-        return func.HttpResponse(
-            body=json.dumps({"error": "ELECTRICITY_MAPS_API_KEY not configured"}),
-            status_code=500,
-            mimetype="application/json"
-        )
+        logging.error(f"Env var not configured: {e}")
 
     # Get latest carbon intensity
     cur_CI, cur_zone, timestamp = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
@@ -58,11 +42,6 @@ def main(mytimer: func.TimerRequest) -> None:
 
     except Exception as e:
         logging.error(f"Something went wrong accessing the prompt table: {e}")
-        return func.HttpResponse(
-            body=json.dumps({"error": f"Something went wrong accessing the prompt table: {str(e)}"}),
-            status_code=500,
-            mimetype="application/json"
-        )
     
     try:
         for entity in entities:
@@ -82,7 +61,7 @@ def main(mytimer: func.TimerRequest) -> None:
             # If scheduler failed to execute in time, execute 
             if now > expirationDate:
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, 10000)
-           
+                continue
             # If carbon intensity is very low, execute
             elif bin_new == 0: 
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
@@ -95,11 +74,6 @@ def main(mytimer: func.TimerRequest) -> None:
                 
     except Exception as e:
         logging.error(f"Something went wrong with the scheduler: {e}")
-        return func.HttpResponse(
-            body=json.dumps({"error": f"Something went wrong with the scheduler: {str(e)}"}),
-            status_code=500,
-            mimetype="application/json"
-        )
 
     # Lastly, store carbon intensity in table (needed for scheduler)
     table_name  = "carbonintensities"
