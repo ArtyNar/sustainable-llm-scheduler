@@ -64,7 +64,14 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     )
     
     entities = table_client.query_entities(query)
-    rows = [dict(e) for e in entities]
+    rows = [
+        {
+            "CI": e["CI"],
+            "Timestamp": e["Timestamp"],
+        }
+        for e in entities
+    ]
+
     CIs = [row['CI'] for row in rows]
 
     min_ci = min(CIs)
@@ -90,8 +97,7 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
         new = int((cur_CI - min_ci) / bin_width + 1)
 
     rows_sorted = sorted(rows, key=lambda x: x['Timestamp'])
-
-    CIs = [row['CI'] for row in rows_sorted[-3:]]
+    CIs = [row["CI"] for row in rows_sorted[-3:]]
 
     return old, new, CIs
 
