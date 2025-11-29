@@ -98,30 +98,31 @@ def get_execution_probability(bin_old, bin_new, time_remaining_hours):
 
     # Base probability heavily favors larger benefits 
     if benefit >= 4:
-        base_prob = 1.0
+        base_prob = 1.0      
     elif benefit >= 3:
-        base_prob = 0.95     
+        base_prob = 0.95    
     elif benefit == 2:
         base_prob = 0.7     
     elif benefit == 1:
-        base_prob = 0.3      
+        base_prob = 0.25    
     else:  
-        return 0.0 # Never execute if there is no benefit
+        return 0.0           
     
-    # Urgency modifier: as deadline approaches, accept smaller benefits
-    if time_remaining_hours > 18:
-        urgency_factor = 0.8    # Still selective but less so
+    if time_remaining_hours > 20:
+        urgency_factor = 0.35   
+    elif time_remaining_hours > 16:
+        urgency_factor = 0.55   
     elif time_remaining_hours > 12:
-        urgency_factor = 1.0    # Normal
+        urgency_factor = 0.75  
     elif time_remaining_hours > 8:
-        urgency_factor = 1.2
+        urgency_factor = 1.0    
     elif time_remaining_hours > 6:
-        urgency_factor = 1.5
+        urgency_factor = 1.3
     elif time_remaining_hours > 3:
-        urgency_factor = 2.0
+        urgency_factor = 1.8
     else:
-        urgency_factor = 2.5
-    
+        urgency_factor = 2.5    
+
     # Combine: probability increases with both benefit and urgency
     final_prob = min(1.0, base_prob * urgency_factor)
     
