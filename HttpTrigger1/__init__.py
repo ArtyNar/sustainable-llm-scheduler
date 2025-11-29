@@ -97,18 +97,29 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     #         mimetype="application/json"
     #     )   
 
-    table_name  = "prompttable"
+    # table_name  = "prompttable"
+    # table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    
+    # cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    
+    # entities = table_client.query_entities(
+    #     query_filter="Status eq 'completed'"
+    # )
+
+    # rows = [dict(e) for e in entities]
+    table_name  = "carbonintensities"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
     
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
     
-    entities = table_client.query_entities(
-        query_filter="Status eq 'completed'"
+    query = (
+        f"PartitionKey eq 'ci' and "
+        f"Timestamp ge datetime'{cutoff_str}'"
     )
-
-    rows = [dict(e) for e in entities]
     
+    entities = table_client.query_entities(query)
     return func.HttpResponse(
-            json.dumps(rows),
+            json.dumps(entities),
             status_code=200
     )
