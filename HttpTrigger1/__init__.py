@@ -72,6 +72,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
             # Get bins for current and past CI (0-5)
             bin_old, bin_new = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
+            logging.info(f"bin_old: {bin_old} bin_new: {bin_old}")
 
             # If scheduler failed to execute in time, execute 
             if now > expirationDate:
@@ -80,7 +81,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             # If carbon intensity is very low, execute
             elif bin_new == 0: 
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
-            
             else:
                 prob = get_execution_probability(bin_old, bin_new, remaining_hours)
 
