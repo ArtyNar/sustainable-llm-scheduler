@@ -7,6 +7,7 @@ from utils import get_cur_CI, get_bin, execute, get_execution_probability
 import uuid
 from datetime import datetime, timezone
 import random
+from datetime import  timedelta, timezone, datetime
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
@@ -93,6 +94,21 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500,
             mimetype="application/json"
         )
+    
+    table_name  = "carbonintensities"
+    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
+
+    cutoff_str = cutoff.strftime('%Y-%m-%dT%H:%M:%SZ')
+    
+    query = (
+        f"Timestamp ge datetime'{cutoff_str}'"
+    )
+    
+    entities = table_client.query_entities(query)
+    rows = [dict(e) for e in entities]
     
     return func.HttpResponse(
             json.dumps({"success": f"Everything went well"}),
