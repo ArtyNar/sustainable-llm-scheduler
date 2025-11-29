@@ -104,23 +104,23 @@ def get_execution_probability(bin_old, bin_new, time_remaining_hours):
     elif benefit == 2:
         base_prob = 0.5      
     elif benefit == 1:
-        base_prob = 0.3     
-    elif benefit == 0:
-        base_prob = 0.1      
+        base_prob = 0.05      
     else:  
         return 0.0 # Never execute if there is no benefit
     
     # Urgency modifier: as deadline approaches, accept smaller benefits
     if time_remaining_hours > 18:
-        urgency_factor = 0.5   # Plenty of time: be picky 
-    elif time_remaining_hours > 10:
-        urgency_factor = 0.8   # Some time: moderate
+        urgency_factor = 0.6   # Plenty of time: be selective
+    elif time_remaining_hours > 12:
+        urgency_factor = 0.85  # Some time: moderately selective
+    elif time_remaining_hours > 8:
+        urgency_factor = 1.0   # Normal threshold
     elif time_remaining_hours > 6:
-        urgency_factor = 1.0   # Getting close: normal
-    elif time_remaining_hours > 4:
-        urgency_factor = 1.5   # Urgent: boost probability
+        urgency_factor = 1.3   # Getting urgent
+    elif time_remaining_hours > 3:
+        urgency_factor = 1.8   # Very urgent
     else:
-        urgency_factor = 3.0   # Very urgent: strongly boost
+        urgency_factor = 2.5   # Critical: must execute soon
     
     # Combine: probability increases with both benefit and urgency
     final_prob = min(1.0, base_prob * urgency_factor)
