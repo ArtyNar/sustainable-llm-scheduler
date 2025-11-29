@@ -58,7 +58,7 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
     cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
 
-    query = f"Timestamp ge datetime'{cutoff_str}'"
+    query = f"PartitionKey eq 'ci' and Timestamp ge datetime'{cutoff_str}''"
 
     entities = table_client.query_entities(query)
     rows = [dict(e) for e in entities]

@@ -81,7 +81,6 @@ def main(mytimer: func.TimerRequest) -> None:
 
     data = {
         "PartitionKey": "ci",
-        "Timestamp": timestamp, # Effectively table name
         "RowKey": str(uuid.uuid4()), # Generates a key 
         "Zone": cur_zone,
         "CI": cur_CI,
