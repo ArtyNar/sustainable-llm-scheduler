@@ -112,7 +112,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
     
     cutoff = datetime.now(timezone.utc) - timedelta(days=7)
-    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")    
+    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
     
     query = (
         f"PartitionKey eq 'ci' and "
@@ -120,16 +120,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     )
 
     entities = table_client.query_entities(query)
-
     rows = []
     for e in entities:
         rows.append({
-            "PartitionKey": e["PartitionKey"],
-            "RowKey": e["RowKey"],
             "CI": e.get("CI"),
             "Timestamp": e.metadata["timestamp"],  # <-- correct
         })
-
 
     return func.HttpResponse(
         json.dumps(rows),
