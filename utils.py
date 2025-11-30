@@ -54,7 +54,7 @@ def get_ci_history(DEPLOYMENT_STORAGE_CONNECTION_STRING):
     table_name  = "carbonintensities"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
     
-    cutoff = datetime.now(timezone.utc) - timedelta(days=4)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=2)
     cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
     
     query = (
@@ -109,31 +109,39 @@ def get_bin(ci_old, cur_CI, CIs):
 def get_execution_probability(bin_old, bin_new, recent_CIs, time_remaining_hours):
     benefit = bin_old - bin_new
     
-    # Don't execute with no benefit
+    # No benefit = no execution
     if benefit <= 0:
         return 0.0
-    
-    base_prob = 1 / (1 + math.exp(-2 * (benefit - 3)))
-    
-    # Force high benefits
+
+    # Base probability: logarithmic growth
+    base_prob = 0.1 * math.log(benefit + 1)
+
+    # Hard boost at high benefit
     if benefit >= 4:
         base_prob = 1.0
+    if benefit == 3:
+        base_prob = .5
 
-    # Urgency factor
-    urgency_factor = 0.15 + 2.15 / (
-        1 + math.exp(0.5 * (time_remaining_hours - 6))
-    )
-    
-    # Trend adjustment
-    if len(recent_CIs) >= 2:
-        ci_trend = recent_CIs[-2] - recent_CIs[-1]  # positive = CI dropping (good)
-        
-        if ci_trend > 0 and benefit < 4:
-            urgency_factor *= 0.1  # Be more patient
-        elif ci_trend < -5 and benefit >= 2:
-            # CI is rising - execute now before it gets worse
-            urgency_factor *= 40.0  # Be more aggressive
-    
+    urgency_factor = 1
+    # Urgency: strongly increases as deadline approaches
+    if time_remaining_hours < 4:
+        # Clamp: guaranteed finish before deadline
+        base_prob = 1
+    else:
+        urgency_factor = 3 / (1 + math.log(time_remaining_hours + 1))
+
+    # Detect CI trend
+    ci_trend = recent_CIs[-2] - recent_CIs[-1]
+
+    # CI dropping → wait → probabilities ~0 if benefit < 4
+    if ci_trend > 1:  # CI dropping
+        if benefit < 4:
+            return 0.001   
+
+    # CI rising → act more aggressively
+    elif ci_trend < 1 and benefit >= 1:
+        urgency_factor *= 10
+
     final_prob = min(1.0, base_prob * urgency_factor)
     return final_prob
 

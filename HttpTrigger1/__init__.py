@@ -107,23 +107,31 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # )
 
     # rows = [dict(e) for e in entities]
-    # table_name  = "carbonintensities"
-    # table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
-    
-    # cutoff = datetime.now(timezone.utc) - timedelta(days=7)
-    # cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
-    
-    # query = (
-    #     f"PartitionKey eq 'ci' and "
-    #     f"Timestamp ge datetime'{cutoff_str}'"
-    # )
 
-    # entities = table_client.query_entities(query)
-    # first = next(iter(entities), None)
+    table_name  = "carbonintensities"
+    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff_str = cutoff.isoformat().replace("+00:00", "Z")    
+    
+    query = (
+        f"PartitionKey eq 'ci' and "
+        f"Timestamp ge datetime'{cutoff_str}'"
+    )
 
-    # timestamp = first.metadata["timestamp"]
+    entities = table_client.query_entities(query)
+
+    rows = []
+    for e in entities:
+        rows.append({
+            "PartitionKey": e["PartitionKey"],
+            "RowKey": e["RowKey"],
+            "CI": e.get("CI"),
+            "Timestamp": e.metadata["timestamp"],  # <-- correct
+        })
+
 
     return func.HttpResponse(
-        json.dumps("Success"),
+        json.dumps(rows),
         status_code=200
     )
