@@ -49,9 +49,8 @@ def use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
 
     return response
 
-# Gets last weeks hourly carbon intensity data, and splits it into bins 0-5
-# Returns what bin old and new CI belong to 
-def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
+# Gets carbon intensity history for the past 7 days
+def get_ci_history(DEPLOYMENT_STORAGE_CONNECTION_STRING):
     table_name  = "carbonintensities"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
     
@@ -72,7 +71,16 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
         for e in entities
     ]
 
-    CIs = [row['CI'] for row in rows]
+    CIs_all = [row['CI'] for row in rows]
+    
+    rows_sorted = sorted(rows, key=lambda x: x['Timestamp'])
+    CIs_latest = [row["CI"] for row in rows_sorted[-3:]]
+    
+    return CIs_all, CIs_latest
+# Gets last weeks hourly carbon intensity data, and splits it into bins 0-5
+# Returns what bin old and new CI belong to 
+def get_bin(ci_old, cur_CI, CIs):
+
 
     min_ci = min(CIs)
     max_ci = max(CIs)
@@ -96,10 +104,7 @@ def get_bin(ci_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING):
     else:
         new = int((cur_CI - min_ci) / bin_width + 1)
 
-    rows_sorted = sorted(rows, key=lambda x: x['Timestamp'])
-    CIs = [row["CI"] for row in rows_sorted[-3:]]
-
-    return old, new, CIs
+    return old, new
 
 def get_execution_probability(bin_old, bin_new, recent_CIs, time_remaining_hours):
     benefit = bin_old - bin_new

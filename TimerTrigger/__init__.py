@@ -3,7 +3,7 @@ import json
 import azure.functions as func
 from azure.data.tables import TableServiceClient
 import os
-from utils import get_cur_CI, get_bin, execute, get_execution_probability
+from utils import get_cur_CI, get_bin, execute, get_execution_probability, get_ci_history
 import uuid
 from datetime import datetime, timezone
 import random
@@ -29,7 +29,10 @@ def main(mytimer: func.TimerRequest) -> None:
         logging.error(f"Env var not configured: {e}")
 
     # Get latest carbon intensity
-    cur_CI, cur_zone, timestamp = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
+    cur_CI, cur_zone, _ = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
+    
+    # Get last weeks history for binning and rate of change information
+    CIs_all, CIs_latest = get_ci_history(DEPLOYMENT_STORAGE_CONNECTION_STRING)
 
     # Access prompt table
     try:
@@ -56,7 +59,7 @@ def main(mytimer: func.TimerRequest) -> None:
             remaining_hours = delta.total_seconds() / 3600
 
             # Get bins for current and past CI (0-5)
-            bin_old, bin_new, CIs = get_bin(CI_old, cur_CI, DEPLOYMENT_STORAGE_CONNECTION_STRING)
+            bin_old, bin_new = get_bin(CI_old, cur_CI, CIs_all)
 
             # If scheduler failed to execute in time, execute 
             if now > expirationDate:
@@ -68,7 +71,7 @@ def main(mytimer: func.TimerRequest) -> None:
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
             
             else:
-                prob = get_execution_probability(bin_old, bin_new, CIs, remaining_hours)
+                prob = get_execution_probability(bin_old, bin_new, CIs_latest, remaining_hours)
                 r = random.random()
                 if r < prob:
                     logging.info(f'Rand: {r}')
