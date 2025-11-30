@@ -67,7 +67,7 @@ def main(mytimer: func.TimerRequest) -> None:
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, 10000)
                 continue
             # If carbon intensity is very low, execute
-            elif bin_new == 0: 
+            elif bin_new == 0 or bin_new == 1: 
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
             
             else:
