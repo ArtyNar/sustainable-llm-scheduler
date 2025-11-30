@@ -125,10 +125,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     entities = table_client.query_entities(query)
     rows = []
     for e in entities:
+        ts = e.metadata["timestamp"]
         rows.append({
             "CI": e.get("CI"),
-            "Timestamp": e.metadata["timestamp"],  # <-- correct
+            "Timestamp": ts.isoformat() if hasattr(ts, "isoformat") else str(ts),
         })
+
 
     return func.HttpResponse(
         json.dumps(rows),
