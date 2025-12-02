@@ -46,66 +46,67 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
     
-    # # Get latest carbon intensity
-    # cur_CI, cur_zone, _ = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
+    # Get latest carbon intensity
+    cur_CI, cur_zone, _ = get_cur_CI(ELECTRICITY_MAPS_API_KEY)
     
-    # # Get last weeks history for binning and rate of change information
-    # CIs_all, CIs_latest = get_ci_history(DEPLOYMENT_STORAGE_CONNECTION_STRING)
+    # Get last weeks history for binning and rate of change information
+    CIs_all, CIs_latest = get_ci_history(DEPLOYMENT_STORAGE_CONNECTION_STRING)
 
-    # # Access prompt table
-    # try:
-    #     table_name  = "prompttable"
-    #     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    # Access prompt table
+    try:
+        table_name  = "prompttable"
+        table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
 
-    #     entities = table_client.query_entities(
-    #         query_filter="Status eq 'pending'" # Filter on pending only
-    #     )
+        entities = table_client.query_entities(
+            query_filter="Status eq 'pending'" # Filter on pending only
+        )
 
-    # except Exception as e:
-    #     logging.error(f"Something went wrong accessing the prompt table: {e}")
+    except Exception as e:
+        logging.error(f"Something went wrong accessing the prompt table: {e}")
     
-    # try:
-    #     for entity in entities:
-    #         model = entity["Model"]
-    #         prompt_text = entity["Prompt"]
-    #         expirationDate = datetime.fromisoformat(entity['expirationDate'])
-    #         CI_old = entity['CarbonIntensity_s'].value
-    #         now = datetime.now(timezone.utc)
+    try:
+        for entity in entities:
+            model = entity["Model"]
+            prompt_text = entity["Prompt"]
+            expirationDate = datetime.fromisoformat(entity['expirationDate'])
+            CI_old = entity['CarbonIntensity_s'].value
+            now = datetime.now(timezone.utc)
             
-    #         # Time remaining
-    #         delta = expirationDate - now
-    #         remaining_hours = delta.total_seconds() / 3600
+            # Time remaining
+            delta = expirationDate - now
+            remaining_hours = delta.total_seconds() / 3600
 
-    #         # Get bins for current and past CI (0-5)
-    #         bin_old, bin_new = get_bin(CI_old, cur_CI, CIs_all)
+            # Get bins for current and past CI (0-5)
+            bin_old, bin_new = get_bin(CI_old, cur_CI, CIs_all)
+            execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, 5)
 
-    #         # If scheduler failed to execute in time, execute 
-    #         if now > expirationDate:
-    #             logging.info('Prompt expired.')
-    #             execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, -1)
-    #             continue
-    #         # If carbon intensity is very low, execute
-    #         elif bin_new == 0 or bin_new == 1: 
-    #             execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
+            # # If scheduler failed to execute in time, execute 
+            # if now > expirationDate:
+            #     logging.info('Prompt expired.')
+            #     execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, -1)
+            #     continue
+            # # If carbon intensity is very low, execute
+            # elif bin_new == 0 or bin_new == 1: 
+            #     execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
             
-    #         else:
-    #             prob = get_execution_probability(bin_old, bin_new, CIs_latest, remaining_hours)
-    #             r = random.random()
-    #             if r < prob:
-    #                 logging.info(f'Rand: {r}')
+            # else:
+            #     prob = get_execution_probability(bin_old, bin_new, CIs_latest, remaining_hours)
+            #     r = random.random()
+            #     if r < prob:
+            #         logging.info(f'Rand: {r}')
 
-    #                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, prob)
+            #         execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, prob)
                 
-    # except Exception as e:
-    #     logging.error(f"Something went wrong with the scheduler: {e}")
+    except Exception as e:
+        logging.error(f"Something went wrong with the scheduler: {e}")
 
 
-    # table_name  = "prompttable"
-    # table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
+    table_name  = "prompttable"
+    table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
         
-    # entities = table_client.query_entities(
-    #     query_filter="Status eq 'completed'"
-    # )
+    entities = table_client.query_entities(
+        query_filter="Status eq 'completed'"
+    )
 
     # rows = [dict(e) for e in entities]
 
