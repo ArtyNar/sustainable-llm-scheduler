@@ -62,7 +62,7 @@ def main(mytimer: func.TimerRequest) -> None:
             bin_old, bin_new = get_bin(CI_old, cur_CI, CIs_all)
 
             # If scheduler failed to execute in time, execute 
-            if now > expirationDate:
+            if now >= expirationDate:
                 logging.info('Prompt expired.')
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, -1)
                 continue
