@@ -133,12 +133,12 @@ def get_execution_probability(bin_old, bin_new, recent_CIs, time_remaining_hours
     # Detect CI trend
     ci_trend = recent_CIs[-2] - recent_CIs[-1]
 
-    # CI dropping → wait → probabilities ~0 if benefit < 4
+    # CI dropping 
     if ci_trend > 1:  # CI dropping
         if benefit < 4:
             return 0.001   
 
-    # CI rising → act more aggressively
+    # CI rising, act more aggressively
     elif ci_trend < 1 and benefit >= 1:
         urgency_factor *= 10
 
