@@ -66,8 +66,8 @@ def main(mytimer: func.TimerRequest) -> None:
                 logging.info('Prompt expired.')
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, -1)
                 continue
-            # If carbon intensity is very low, execute
-            elif bin_new == 0 or bin_new == 1: 
+            # If carbon intensity is very low, execute. Cennot expect a lot of benefit
+            elif bin_new == 0 or bin_new == 1 or  bin_new == 2: 
                 execute(entity, cur_CI, table_client, model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, bin_new)
             
             else:
