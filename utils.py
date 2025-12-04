@@ -49,12 +49,12 @@ def use_llm(model, prompt_text, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY):
 
     return response
 
-# Gets carbon intensity history for the past 4 days
+# Gets carbon intensity history for the past 3 days
 def get_ci_history(DEPLOYMENT_STORAGE_CONNECTION_STRING):
     table_name  = "carbonintensities"
     table_client = TableServiceClient.from_connection_string(DEPLOYMENT_STORAGE_CONNECTION_STRING).get_table_client(table_name)
     
-    cutoff = datetime.now(timezone.utc) - timedelta(days=2)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=3)
     cutoff_str = cutoff.isoformat().replace("+00:00", "Z")
     
     query = (
